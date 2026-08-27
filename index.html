@@ -113,21 +113,24 @@
     </div>
   </div>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase Compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <script>
+    // Firebase Configuration
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyBYHDHXnPmIGf7m0eeGmBpC8Ug8f6V_fOo",
+      authDomain: "duhongo-3062b.firebaseapp.com",
+      databaseURL: "https://duhongo-3062b-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "duhongo-3062b",
+      storageBucket: "duhongo-3062b.firebasestorage.app",
+      messagingSenderId: "220315853477",
+      appId: "1:220315853477:web:0739b789a097e0faefa34c",
+      measurementId: "G-VG2JWPJL6M"
     };
 
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -204,6 +207,8 @@
         input.value = "";
         toggleChannelInput();
         switchChannel(channelName);
+      }).catch((err) => {
+        console.error("Error creating channel:", err);
       });
     }
 
