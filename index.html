@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anonymous Workspace</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1f1f1f; color: #fff; margin: 0; padding: 0; height: 100vh; }
+    
+    /* Login Screen & Avatar Upload */
+    #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+    .card { background: #2b2b2b; padding: 24px; border-radius: 8px; width: 320px; text-align: center; }
+    .avatar-upload-wrapper { margin-bottom: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    #avatar-preview { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: #1f1f1f; border: 2px dashed #6264a7; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    
+    /* App Layout */
+    #app-screen { display: none; height: 100vh; flex-direction: row; }
+    
+    /* Sidebar & Channels */
+    #sidebar { width: 220px; background: #141414; border-right: 1px solid #333; display: flex; flex-direction: column; padding: 15px; }
+    .channel-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 4px; cursor: pointer; color: #aaa; margin-bottom: 4px; font-weight: 500; }
+    .channel-item:hover, .channel-item.active { background: #2b2b2b; color: #fff; }
+    .channel-item.active { border-left: 3px solid #6264a7; }
+
+    /* Main Chat Stream */
+    #chat-main { flex: 1; display: flex; flex-direction: column; background: #1f1f1f; }
+    .header { padding: 15px; border-bottom: 1px solid #333; font-weight: bold; background: #252525; }
+    #message-stream { flex: 1; overflow-y: auto; padding: 20px; }
+    
+    /* Messages, Avatars & Threads */
+    .msg-card { background: #2b2b2b; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #333; }
+    .author-container { display: flex; align-items: center; gap: 8px; }
+    .avatar-img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: #333; border: 1px solid #444; flex-shrink: 0; }
+    .avatar-img-sm { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; background: #333; border: 1px solid #444; flex-shrink: 0; }
+    .author { font-weight: bold; color: #50e3c2; font-size: 0.9em; }
+    .time { color: #888; font-size: 0.75em; margin-left: 6px; }
+    .msg-body { font-size: 0.95em; line-height: 1.4; word-break: break-word; }
+    
+    /* Reaction Bar & Pills */
+    .reactions-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; align-items: center; }
+    .reaction-pill { background: #333; border: 1px solid #444; border-radius: 12px; padding: 2px 8px; font-size: 0.8em; cursor: pointer; display: flex; align-items: center; gap: 4px; user-select: none; }
+    .reaction-pill:hover, .reaction-pill.active { background: #3a3b5a; border-color: #6264a7; }
+    .reaction-pill.active { color: #50e3c2; }
+    .add-reaction-btn { background: transparent; border: 1px solid #444; border-radius: 12px; padding: 2px 6px; font-size: 0.75em; cursor: pointer; color: #aaa; }
+    .add-reaction-btn:hover { background: #333; color: #fff; }
+    .emoji-picker-inline { display: none; gap: 4px; background: #1f1f1f; border: 1px solid #444; padding: 4px 6px; border-radius: 16px; margin-top: 4px; }
+
+    /* Thread Replies */
+    .thread-replies { margin-top: 10px; padding-left: 12px; border-left: 2px solid #6264a7; background: #232323; padding: 8px; border-radius: 0 4px 4px 0; }
+    .reply-card { margin-bottom: 10px; font-size: 0.9em; }
+    .reply-card:last-child { margin-bottom: 0; }
+    
+    .reply-box { margin-top: 10px; display: flex; gap: 6px; }
+    .reply-box input { flex: 1; font-size: 0.85em; padding: 6px 10px; }
+    .reply-box button { font-size: 0.85em; padding: 6px 12px; background: #464775; }
+
+    /* Footer Inputs */
+    .input-footer { padding: 15px; background: #252525; border-top: 1px solid #333; display: flex; gap: 10px; }
+    
+    /* Global Elements */
+    input, button { background: #333; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; }
+    input { flex: 1; outline: none; }
+    button { background: #6264a7; cursor: pointer; border: none; font-weight: bold; }
+    button:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="login-screen">
+    <div class="card">
+      <h2 style="margin-top:0;">Teams (Anon)</h2>
+      
+      <div class="avatar-upload-wrapper">
+        <img id="avatar-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='%23888' viewBox='0 0 24 24'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" onclick="document.getElementById('avatar-input').click()" alt="Avatar Preview" />
+        <input type="file" id="avatar-input" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)" />
+        <button style="font-size: 0.75em; padding: 4px 8px; background: #333;" onclick="document.getElementById('avatar-input').click()">Upload Avatar</button>
+      </div>
+
+      <input type="text" id="nickname-input" placeholder="Choose a nickname..." style="width: 100%; margin-bottom: 12px;" />
+      <button style="width: 100%;" onclick="joinWorkspace()">Join Workspace</button>
+    </div>
+  </div>
+
+  <!-- Main App Screen -->
+  <div id="app-screen">
+    <!-- Channel Sidebar -->
+    <div id="sidebar">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 0.9em; text-transform: uppercase; color: #888;">Channels</h3>
+        <button onclick="toggleChannelInput()" style="padding: 2px 8px; font-size: 1rem; line-height: 1;">+</button>
+      </div>
+
+      <!-- Add Channel Input -->
+      <div id="new-channel-form" style="display: none; margin-bottom: 12px;">
+        <input type="text" id="channel-name-input" placeholder="channel-name" style="width: 100%; font-size: 0.85em; padding: 6px; margin-bottom: 4px;" />
+        <button onclick="createChannel()" style="width: 100%; font-size: 0.8em; padding: 6px;">Create</button>
+      </div>
+
+      <div id="channels-list"></div>
+    </div>
+
+    <!-- Main Chat Stream -->
+    <div id="chat-main">
+      <div class="header" id="current-channel-title"># general</div>
+      <div id="message-stream"></div>
+      
+      <div class="input-footer">
+        <input type="text" id="new-post-input" placeholder="Start a new conversation..." onkeydown="if(event.key==='Enter') createNewPost()" />
+        <button onclick="createNewPost()">Post</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='%2350e3c2' viewBox='0 0 24 24'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+    const PRESET_EMOJIS = ["👍", "❤️", "🔥", "🚀", "😂"];
+
+    let activeChannel = "general";
+    let currentUser = "";
+    let currentUserAvatar = DEFAULT_AVATAR;
+
+    window.onload = () => {
+      const savedUser = localStorage.getItem("anon_nickname");
+      const savedAvatar = localStorage.getItem("anon_avatar");
+      if (savedUser) enterWorkspace(savedUser, savedAvatar);
+    };
+
+    function handleAvatarUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function () {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = 100;
+          canvas.height = 100;
+          ctx.drawImage(img, 0, 0, 100, 100);
+
+          currentUserAvatar = canvas.toDataURL("image/jpeg", 0.7);
+          document.getElementById("avatar-preview").src = currentUserAvatar;
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function joinWorkspace() {
+      const nick = document.getElementById("nickname-input").value.trim();
+      if (!nick) return alert("Please enter a nickname");
+      
+      localStorage.setItem("anon_nickname", nick);
+      localStorage.setItem("anon_avatar", currentUserAvatar);
+      enterWorkspace(nick, currentUserAvatar);
+    }
+
+    function enterWorkspace(nick, avatar) {
+      currentUser = nick;
+      currentUserAvatar = avatar || localStorage.getItem("anon_avatar") || DEFAULT_AVATAR;
+      
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app-screen").style.display = "flex";
+      listenToChannelsList();
+      switchChannel(activeChannel);
+    }
+
+    function toggleChannelInput() {
+      const form = document.getElementById("new-channel-form");
+      form.style.display = form.style.display === "none" ? "block" : "none";
+    }
+
+    function createChannel() {
+      const input = document.getElementById("channel-name-input");
+      const rawName = input.value.trim().toLowerCase();
+      const channelName = rawName.replace(/[^a-z0-9_-]/g, "");
+
+      if (!channelName) return alert("Please enter a valid channel name (letters, numbers, hyphens).");
+
+      db.ref(`channel_list/${channelName}`).set({
+        createdBy: currentUser,
+        createdAt: Date.now()
+      }).then(() => {
+        input.value = "";
+        toggleChannelInput();
+        switchChannel(channelName);
+      });
+    }
+
+    function listenToChannelsList() {
+      db.ref("channel_list").on("value", (snapshot) => {
+        const container = document.getElementById("channels-list");
+        container.innerHTML = "";
+        
+        snapshot.forEach((childSnap) => {
+          const ch = childSnap.key;
+          const div = document.createElement("div");
+          div.className = `channel-item ${ch === activeChannel ? 'active' : ''}`;
+          div.innerText = `# ${ch}`;
+          div.onclick = () => switchChannel(ch);
+          container.appendChild(div);
+        });
+
+        if (!snapshot.exists()) {
+          db.ref("channel_list/general").set({ createdBy: "system", createdAt: Date.now() });
+        }
+      });
+    }
+
+    function switchChannel(channelName) {
+      activeChannel = channelName;
+      document.getElementById("current-channel-title").innerText = `# ${channelName}`;
+      listenToChannelsList();
+      
+      db.ref(`channels/${activeChannel}`).off();
+      listenToChannel();
+    }
+
+    function createNewPost() {
+      const input = document.getElementById("new-post-input");
+      const text = input.value.trim();
+      if (!text) return;
+
+      db.ref(`channels/${activeChannel}`).push({
+        author: currentUser,
+        avatar: currentUserAvatar,
+        text: text,
+        timestamp: Date.now(),
+        replies: {}
+      });
+
+      input.value = "";
+    }
+
+    function sendReply(postId) {
+      const input = document.getElementById(`reply-input-${postId}`);
+      const text = input.value.trim();
+      if (!text) return;
+
+      db.ref(`channels/${activeChannel}/${postId}/replies`).push({
+        author: currentUser,
+        avatar: currentUserAvatar,
+        text: text,
+        timestamp: Date.now()
+      });
+
+      input.value = "";
+    }
+
+    function toggleReaction(postId, emoji, replyId = null) {
+      const safeUser = currentUser.replace(/[.#$[\]]/g, "_");
+      const basePath = replyId 
+        ? `channels/${activeChannel}/${postId}/replies/${replyId}/reactions/${emoji}/${safeUser}`
+        : `channels/${activeChannel}/${postId}/reactions/${emoji}/${safeUser}`;
+
+      const ref = db.ref(basePath);
+      ref.once("value", (snapshot) => {
+        if (snapshot.exists()) {
+          ref.remove();
+        } else {
+          ref.set(true);
+        }
+      });
+    }
+
+    function renderReactionsHtml(reactionsObj, postId, replyId = null) {
+      let pillsHtml = "";
+      const safeUser = currentUser.replace(/[.#$[\]]/g, "_");
+
+      if (reactionsObj) {
+        Object.keys(reactionsObj).forEach((emoji) => {
+          const users = reactionsObj[emoji] || {};
+          const count = Object.keys(users).length;
+          const hasReacted = users[safeUser] === true;
+          const targetParam = replyId ? `'${postId}', '${emoji}', '${replyId}'` : `'${postId}', '${emoji}'`;
+
+          if (count > 0) {
+            pillsHtml += `
+              <div class="reaction-pill ${hasReacted ? 'active' : ''}" onclick="toggleReaction(${targetParam})">
+                <span>${emoji}</span> <span>${count}</span>
+              </div>
+            `;
+          }
+        });
+      }
+
+      const pickerId = replyId ? `picker-${replyId}` : `picker-${postId}`;
+      let pickerEmojis = "";
+      PRESET_EMOJIS.forEach((e) => {
+        const targetParam = replyId ? `'${postId}', '${e}', '${replyId}'` : `'${postId}', '${e}'`;
+        pickerEmojis += `<span style="cursor:pointer;" onclick="toggleReaction(${targetParam}); togglePicker('${pickerId}')">${e}</span>`;
+      });
+
+      return `
+        <div class="reactions-bar">
+          ${pillsHtml}
+          <button class="add-reaction-btn" onclick="togglePicker('${pickerId}')">+ 😀</button>
+          <div class="emoji-picker-inline" id="${pickerId}">${pickerEmojis}</div>
+        </div>
+      `;
+    }
+
+    function togglePicker(pickerId) {
+      const el = document.getElementById(pickerId);
+      if (el) el.style.display = el.style.display === "flex" ? "none" : "flex";
+    }
+
+    function listenToChannel() {
+      db.ref(`channels/${activeChannel}`).limitToLast(30).on("value", (snapshot) => {
+        const stream = document.getElementById("message-stream");
+        stream.innerHTML = "";
+
+        snapshot.forEach((childSnap) => {
+          const postId = childSnap.key;
+          const post = childSnap.val();
+          const time = new Date(post.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const postAvatar = post.avatar || DEFAULT_AVATAR;
+
+          let repliesHtml = "";
+          if (post.replies) {
+            Object.keys(post.replies).forEach((replyId) => {
+              const reply = post.replies[replyId];
+              const replyTime = new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              const replyAvatar = reply.avatar || DEFAULT_AVATAR;
+              const replyReactionsHtml = renderReactionsHtml(reply.reactions, postId, replyId);
+
+              repliesHtml += `
+                <div class="reply-card">
+                  <div class="author-container">
+                    <img class="avatar-img-sm" src="${replyAvatar}" alt="avatar" />
+                    <span class="author">${escapeHtml(reply.author)}</span>
+                    <span class="time">${replyTime}</span>
+                  </div>
+                  <div class="msg-body" style="margin-top: 4px;">${escapeHtml(reply.text)}</div>
+                  ${replyReactionsHtml}
+                </div>
+              `;
+            });
+          }
+
+          const mainReactionsHtml = renderReactionsHtml(post.reactions, postId);
+
+          const postEl = document.createElement("div");
+          postEl.className = "msg-card";
+          postEl.innerHTML = `
+            <div class="author-container">
+              <img class="avatar-img" src="${postAvatar}" alt="avatar" />
+              <div>
+                <span class="author">${escapeHtml(post.author)}</span>
+                <span class="time">${time}</span>
+              </div>
+            </div>
+            <div class="msg-body" style="margin-top: 8px;">${escapeHtml(post.text)}</div>
+            
+            ${mainReactionsHtml}
+
+            ${repliesHtml ? `<div class="thread-replies">${repliesHtml}</div>` : ''}
+            
+            <div class="reply-box">
+              <input type="text" id="reply-input-${postId}" placeholder="Reply to thread..." onkeydown="if(event.key==='Enter') sendReply('${postId}')" />
+              <button onclick="sendReply('${postId}')">Reply</button>
+            </div>
+          `;
+
+          stream.appendChild(postEl);
+        });
+        stream.scrollTop = stream.scrollHeight;
+      });
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+</body>
+</html>
